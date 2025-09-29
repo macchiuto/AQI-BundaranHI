@@ -1,0 +1,360 @@
+---
+title: "Air Quality Chronicles in Bundaran HI 2010-2021"
+author: "Gabriella Widjaja, Khansa Nabilah Awali, Syalista Galuh Nadira"
+date: "2024-06-21"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+#Load packages
+library(dplyr) #data manipulation
+library(tidyr) #tidy messy data
+library(reshape2) #reshape
+library(heatmaply) #visualisasi heatmap
+library(visdat) #visualisasi missing value
+library(ggplot2) #visualisasi
+library(psych) #statistical
+library(DataExplorer) #eksplorasi data
+library(corrplot) #visualisasi correlation plot
+library(tidyverse) #manipulasi & analisis data
+```
+
+
+# Table of Contents  
+1. Introduction  
+2. Data Description  
+3. Data Preprocessing  
+    3.1 Penghapusan kolom pm25  
+    3.2 Imputasi *missing value*  
+    3.3 *Encoding* variabel kategorikal  
+4. Data Exploration  
+    4.1 Struktur data  
+    4.2 Variabel dan deskripsinya  
+    4.3 Variabel dan tipe datanya  
+    4.4 *Summary statistics*  
+    4.5 *Unique value*  
+    4.6 Visualisasi Data  
+        - Histogram untuk variabel numerik  
+        - Correlation plot  
+        - Bar plot untuk variabel critical  
+        - Time series line chart variabel critical  
+        - Box plot untuk variabel categori dan total partikulat  
+        - Time series line chart untuk rata-rata total konsentrasi partikulat per tahun  
+        - Time series line chart untuk rata-rata konsentrasi polutan per tahun  
+        - Scatter plot untuk variabel no2 dan max  
+5. Discussion  
+6. Conclusion  
+7. References  
+
+
+
+# 1. Introduction
+Pada laporan ini, akan kami sajikan analisis kualitas udara di wilayah DKI Jakarta berdasarkan data yang dikumpulkan dari stasiun pemantauan Bundaran HI. Data ini mencakup berbagai parameter polusi udara yang diukur selama periode tertentu, termasuk PM~10~, SO~2~, CO, O~3~, NO~2~, dan PM~2.5~. Struktur laporan mencakup deskripsi data, *data preprocessing*, *data exploration*, *statistical analysis*, dan diskusi untuk memberikan pemahaman yang komprehensif mengenai kondisi kualitas udara di lokasi tersebut.
+
+Topik ini penting karena kualitas udara memiliki dampak signifikan terhadap kesehatan masyarakat dan lingkungan, terutama di area urban seperti Jakarta. Dengan memahami pola dan tingkat polusi udara di Bundaran HI, kita dapat mengambil langkah-langkah mitigasi yang lebih efektif. Analisis ini relevan karena memberikan wawasan berharga yang dapat membantu dalam perumusan kebijakan lingkungan dan kesehatan di Jakarta. Temuan-temuan ini berpotensi diterapkan dalam upaya peningkatan kualitas udara dan perlindungan kesehatan masyarakat di area tersebut.
+
+Laporan ini ditujukan untuk peneliti, pemangku kepentingan, dan pihak lain yang tertarik pada kualitas udara di Jakarta. Tujuan analisis ini adalah untuk mengidentifikasi tren dan pola polusi udara serta faktor-faktor kritis yang mempengaruhinya, dengan fokus untuk menjawab beberapa pertanyaan penting, yaitu:  
+- Bagaimana tren polusi udara di Bundaran HI selama periode 2010-2021?  
+- Parameter polusi udara mana yang paling dominan dan kritis di stasiun Bundaran HI?  
+- Apa yang mempengaruhi baik atau tidaknya kualitas udara di lokasi ini?  
+
+Metode yang kami gunakan adalah Exploratory Data Analysis (EDA). EDA adalah pendekatan menganalisis kumpulan data untuk merangkum karakteristik utamanya, sering kali menggunakan grafik statistik dan metode visualisasi data lainnya [(Wikipedia)](https://en.wikipedia.org/wiki/Exploratory_data_analysis). Kami menggunakan metode EDA karena sesuai untuk mencapai tujuan analisis ini dan memberikan hasil yang akurat dan mendalam. Metode statistik yang kami pakai untuk menganalisis korelasi antara satu variabel dengan lainnya yaitu Pearson Correlation. Pearson correlation ialah untuk mengetahui keeratan hubungan antara variabel dependen dan independen. Pearson correlation berada di antara –1 hingga 1 dimana jika ia bernilai positif, hubungan itu menunjukkkan searah dan bersifat bertambah, dan sebaliknya jika bernilai negatif maka menunjukkan hubungan searah akan dan bersifat berkurang [(Statistika UB)](https://ss.mipa.ub.ac.id/korelasi-pearson/). 
+
+Analisis ini dilakukan dengan asumsi bahwa data yang tersedia representatif dan akurat. Namun, perlu diakui bahwa analisis ini memiliki batasan, seperti keterbatasan data PM~2.5~ yang hanya tersedia dalam jumlah terbatas. Laporan ini diharapkan memberikan wawasan mendalam dan membantu pembaca dalam memahami kondisi kualitas udara di Bundaran HI, serta mendukung pengambilan keputusan yang lebih baik terkait upaya peningkatan kualitas udara di Jakarta.
+
+
+# 2. Data Description
+Dataset ini diambil dari sumber terbuka di Kaggle, dengan link berikut: [Air Quality Index in Jakarta 2010-2021](https://www.kaggle.com/datasets/senadu34/air-quality-index-in-jakarta-2010-2021/data). Data ini dikumpulkan dari Open Data Jakarta dan bersumber dari Dinas Lingkungan Hidup Provinsi DKI Jakarta.
+
+```{r}
+df<-read.csv("/Users/debby/Downloads/ispu_dki1.csv")
+head(df)
+```
+
+Dataset ini terdiri dari 11 kolom yang menjelaskan berbagai parameter dan kategori kualitas udara. Berikut adalah rincian variabel dalam dataset:
+**tanggal**   : Tanggal pengukuran dilakukan  
+**stasiun**   : Nama stasiun pemantauan, dalam hal ini adalah "DKI1 (Bundaran HI)"  
+**pm10**      : Konsentrasi partikulat berukuran ≤ 10 mikrometer (PM~10~), diukur dalam µg/m³  
+**so2**       : Konsentrasi sulfur dioksida (SO~2~), diukur dalam µg/m³  
+**co**        : Konsentrasi karbon monoksida (CO), diukur dalam µg/m³  
+**o3**        : Konsentrasi ozon (O~3~), diukur dalam µg/m³  
+**no2**       : Konsentrasi nitrogen dioksida (NO~2~), diukur dalam µg/m³  
+**max**       : Nilai maksimum dari parameter polutan yang diukur pada hari tersebut  
+**critical**  : Parameter polutan yang dianggap paling kritis pada hari tersebut (misalnya, CO, O~3~, atau PM~10~)  
+**categori**  : Kategori kualitas udara berdasarkan parameter yang diukur, seperti "BAIK", "SEDANG", "TIDAK SEHAT"  
+**pm25**      : Konsentrasi partikulat berukuran ≤ 2.5 mikrometer (PM~2.5~), diukur dalam µg/m³. Data ini baru tersedia pada periode 2021  
+
+Data ini sangat relevan untuk menganalisis tren dan pola kualitas udara di Jakarta, khususnya di area Bundaran HI yang merupakan salah satu pusat aktivitas dan lalu lintas di kota ini. Mengingat dampak signifikan dari polusi udara terhadap kesehatan masyarakat dan lingkungan, analisis data ini dapat memberikan wawasan yang berharga untuk pengambilan keputusan dan kebijakan terkait upaya pengendalian polusi udara.
+
+
+# 3. Data Preprocessing
+### Penghapusan kolom pm25
+Pertama, kami menghapus kolom pm25 karena hanya ada pada tahun 2021 untuk mengurangi risiko menghasilkan kesimpulan yang tidak dapat diandalkan.
+```{r}
+df = subset(df, select = -c(pm25)) #menghapus kolom pm25 karena hanya tersedia di tahun 2021
+```
+
+### Imputasi *missing value*
+Selanjutnya, untuk menghandle missing value yang terdapat di beberapa variabel, kami terlebih dahulu mencari tahu apakah variabel tersebut **skewed** atau tidak.
+```{r}
+df <- data.frame(lapply(df, function(x) replace(x, x == "", NA))) #memperjelas nilai kosong ("") menjadi NA
+sapply(df, function(x) sum(is.na(x))) #menghitung jumlah missing values di data
+```
+
+```{r}
+lapply(df, function(x) if(is.numeric(x)) skew(x) else NA) #melihat skewness dari kolom *skew* untuk semua variabel numerik
+```
+Dapat dilihat bahwa semua variabel numeriknya tidak berdistribusi normal (0) dan *skewed*, maka missing values akan kami ganti dengan **median** masing-masing variabel agar menghindari hal-hal yang tidak diinginkan.
+
+```{r}
+#mengganti NA di semua variabel numerik dengan median
+df <- data.frame(lapply(df, function(x) {
+  if (is.numeric(x)) {
+    x[is.na(x)] <- median(x, na.rm = TRUE)
+  }
+  return(x)
+}))
+```
+
+Kemudian, untuk missing values pada variabel kategorikal akan kami ganti dengan "TIDAK ADA DATA" untuk memperjelas data.
+```{r}
+#mengganti NA di semua variabel kategorikal dengan "TIDAK ADA DATA"
+df <- df %>% 
+  mutate_if(is.character, ~ ifelse(is.na(.), "TIDAK ADA DATA", .))
+```
+
+### *Encoding* variabel kategorikal
+Selain itu, **encoding** juga diperlukan agar variabel kategorikal dapat diinterpretasikan atau diproses secara benar oleh algoritma atau model analisis data.
+```{r}
+df$tanggal<- unclass(df$tanggal)
+df$stasiun<- unclass(df$stasiun)
+df$critical<- unclass(df$critical)
+df$categori<- unclass(df$categori)
+```
+
+
+# 4. Data Exploration
+### Struktur data
+```{r}
+str(df)
+```
+Terdapat 4383 observasi/records dengan 10 variabel di dataset.
+
+### Variabel dan deskripsinya
+```{r}
+names(df)
+```
+**tanggal**: Tanggal pengukuran dilakukan.  
+**stasiun**: Nama stasiun pemantauan, dalam hal ini adalah "DKI1 (Bundaran HI)"  
+**pm10**: Konsentrasi partikulat berukuran ≤ 10 mikrometer (PM~10~), diukur dalam µg/m³  
+**so2**: Konsentrasi sulfur dioksida (SO~2~), diukur dalam µg/m³  
+**co**: Konsentrasi karbon monoksida (CO), diukur dalam µg/m³ 
+**o3**: Konsentrasi ozon (O~3~), diukur dalam µg/m³  
+**no2**: Konsentrasi nitrogen dioksida (NO~2~), diukur dalam µg/m³  
+**max**: Nilai maksimum dari parameter polutan yang diukur pada hari tersebut  
+**critical**: Parameter polutan yang dianggap paling kritis pada hari tersebut (misalnya, CO, O~3~, atau PM~10~)  
+**categori**: Kategori kualitas udara berdasarkan parameter yang diukur, seperti "BAIK", "SEDANG", "TIDAK SEHAT"  
+
+### Variabel dan tipe datanya
+```{r}
+sapply(df, function(x) class(x)) # menampilkan semua variabel dan tipe datanya (class)
+```
+Tipe variabel dalam dataset divariasikan dengan 2 variabel kategorikal, yaitu tanggal, stasiun, critical, dan categori, serta 9 variabel numerik, yaitu pm10, so2, co, o3, no2, dan max.
+
+### *Summary statistics*
+```{r}
+summary(df)
+```
+
+### *Unique value*
+```{r}
+sapply(df, function(x) length(unique(x))) 
+```
+Semua value pada variabel tanggal adalah *unique value* karena per harinya diperoleh 1 data. Stasiun hanya memiliki 1 *unique value* sebab semua observasi dilakukan di Stasiun Bundaran HI. Untuk variabel partikulat, jumlah *unique value*nya beragam, pm10 sebanyak 91, so2 sebanyak 79, co sebanyak 74, o3 sebanyak 146, no2 sebanyak 61, dan max sebanyak 142. Pada variabel critical terdapat 6 *unique value*, value tersebut merupakan partikulat-partikulat udara seperti pm10 dan so2. Variabel categori hanya memiliki 4 *unique value*, value tersebut yaitu BAIK, SEDANG, TIDAK SEHAT, dan TIDAK ADA DATA.
+
+#### Value yang paling banyak muncul
+Value yang memiliki jumlah kemunculan paling banyak sudah jelas, yaitu "DKI1 (Bunderan HI)" pada kolom stasiun.
+
+
+### Visualisasi Data
+#### Histogram untuk variabel numerik
+```{r}
+num_cols <- unlist(lapply(df, is.numeric)) #menerapkan fungsi is.numeric ke setiap kolom dalam df
+df_num <- df[ , num_cols]  #subset df untuk keep hanya variabel numerik
+d <- melt(df_num) #mengubah format dataframe menjadi panjang 
+
+ggplotly(ggplot(d, aes(x=value)) +
+  facet_wrap(~variable, scales = "free_x") + #facet_wrap untuk buat plot berdasarkan variabel dengan sumbu x menyesuaikan
+  geom_histogram()
+)
+```
+Dari visualisasi ini, terlihat bahwa variabel pm10 menunjukkan distribusi yang paling mendekati merata, sementara variabel lainnya cenderung memiliki distribusi lebih terkonsentrasi di sekitar nilai-nilai tertentu. Insight penting adalah keberadaan beberapa outlier yang walaupun dapat mempengaruhi analisis data, akan kami hiraukan secara sengaja karena jika kami mengotak-atik nilai-nilai tersebut, data dapat menjadi kacau dan tidak akurat lagi.
+
+
+#### Correlation plot
+```{r}
+cr <- cor(df[, c(3:7)], use = "complete.obs") #korelasi antara konsentrasi partikulat dalam udara
+corrplot(cr, method = 'number', shade.col=NA, tl.col="black", tl.srt=45) #correlation plot
+cor(df[, c(3:7)])
+```
+Secara umum, visualisasi tersebut tidak menunjukkan adanya korelasi yang sangat kuat di antara variabel-variabel dalam data. Korelasi dianggap kuat jika nilai absolutnya mendekati 1.
+
++ Korelasi positif terlemah adalah antara variabel pm10 dan so2 (0.076)  
++ Korelasi positif terkuat adalah antara variabel pm10 dan co (0.334) 
+- Korelasi negatif terlemah adalah antara variabel so2 dan co (-0.111)  
+- Korelasi negatif terkuat adalah antara variabel so2 dan o3 (-0.153)  
+
+Korelasi positif berarti bahwa ketika satu variabel meningkat, variabel lainnya cenderung meningkat juga, sedangkan korelasi negatif berarti bahwa ketika satu variabel meningkat, variabel lainnya cenderung menurun. Korelasi yang dekat dengan nol (baik positif maupun negatif) menunjukkan hubungan yang sangat lemah atau tidak ada antara variabel-variabel tersebut.
+
+Dalam konteks kualitas udara, korelasi antara berbagai polutan dapat membantu memahami sumber dan dinamika pencemaran udara. Korelasi yang lebih kuat mungkin menunjukkan bahwa polutan tersebut berasal dari sumber yang sama atau terlibat dalam proses kimia yang sama di atmosfer, sedangkan korelasi yang lebih lemah menunjukkan hubungan yang lebih kompleks atau tidak terkait langsung.
+
+
+#### Bar plot untuk variabel critical
+```{r}
+ggplotly(ggplot(df, aes(x = reorder(critical, -table(critical)[critical]))) + #reorder agar barnya tersusun secara descending 
+  geom_bar(fill = "hotpink4") + #bar plot
+    labs(x = "critical", y = "count", title = "Distribusi Parameter Critical")
+)
+```
+Critical adalah parameter yang mempunyai hasil pengukuran tertinggi. Parameter yang dimaksud merupakan salah satu dari CO, O~3~, PM~10~, PM~2.5~, atau SO~2~.
+Dari visualisasi di atas, kita tahu bahwa PM~10~ adalah parameter yang paling sering mencapai level kritis dibandingkan parameter lainnya, dengan jumlah pengukuran tertinggi sebanyak 1996 kali. Hal ini menunjukkan bahwa partikel PM~10~ merupakan masalah utama dalam kualitas udara di wilayah sekitaran Bundaran HI. O~3~ juga menunjukkan angka yang cukup tinggi, menandakan bahwa ozon adalah parameter kedua yang sering mencapai level kritis. Sebaliknya, SO~2~ memiliki jumlah pengukuran tertinggi yang paling sedikit, hanya 56 kali, menunjukkan bahwa sulfur dioksida mungkin tidak menjadi perhatian utama dalam hal kualitas udara kritis di wilayah ini.
+
+
+#### Time-series line chart variabel critical
+Untuk versi periode 2010 - 2021:
+```{r}
+dates <- as.Date(df$tanggal) #menjadikan variabel tanggal berformat as.Date
+
+#menambahkan kolom tahun untuk mempermudah pengelompokkan data per tahun
+df <- df %>%
+  mutate(year = format(dates, "%Y"))
+
+df <- df %>%
+  select(tanggal, year, everything()) #menempatkan kolom year di sebelah kolom tanggal
+summary_data <- df %>%
+  group_by(year, critical) %>%
+  summarise(Count = n()) %>%
+  ungroup()
+
+plot_ly(summary_data, x = ~year, y = ~Count, color = ~critical, type = 'scatter', mode = 'lines+markers') %>% #scatter plot dengan atribut line dan marker
+  layout(title = "Jumlah Kejadian Polutan Kritikal per Tahun",
+         xaxis = list(title = "Tahun"),
+         yaxis = list(title = "Jumlah Kejadian"))
+```
+&nbsp; &nbsp; Dari sini, dapat diketahui perubahan jumlah partikulat yang kritis per tahunnya bervariasi. PM~10~ bergerak secara tidak konsisten, mulai menurun drastis pada 2011 dan 2012 kemudian meningkat kembali pada tahun 2013 dan 2015 di mana pada 2015 tingkat jumlahnya ada pada puncak tertinggi dan pada 2021 di titik terendahnya selama periode 2010-2021.Begitu juga dengan O~3~ yang grafiknya naik-turun, meningkat secara signifikan dari 2010-2012 dan 2016-2017, menempati puncak tertingginya pada 2012 dan terendah pada 2016.  
+&nbsp; &nbsp; Partikulat PM~2.5~ meningkat secara drastis dari 2020 hingga 2021 disebabkan oleh arah angin yang membawa emisi PM~2.5~ (debu dengan ukuran < 2.5 mikro) yang dihasilkan oleh pembangkit listrik Suralaya ke Jakarta.  
+&nbsp; &nbsp; Sementara itu, partikulat CO dan SO~2~ secara konsisten bertahan di jumlah yang cukup rendah dibandingkan dengan partikulat lain, yaitu di bawah 20 kejadian.
+
+
+#### Box plot untuk variabel categori dan total partikulat
+```{r}
+#membuat variabel baru "sum_partikulat" yang merupakan jumlah total dari partikulat di hari tersebut
+df$sum_partikulat <- rowSums(df[, c("pm10", "so2", "co", "o3", "no2")])
+
+#membuat boxplot interaktif
+ggplotly(ggplot(df, aes(x = categori, y = sum_partikulat, fill = categori)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("BAIK" = "springgreen4", 
+                               "SEDANG" = "gold1",
+                               "TIDAK SEHAT" = "red")) +
+    labs(x = "Kategori", y = "Total Partikulat (µgram/m³)", title = "Pengaruh Jumlah Polutan terhadap Kualitas Udara")
+)
+```
+Berdasarkan visualisasi di atas, udara yang berkualitas BAIK memiliki rentang total partikulat berpusat di nilai 96-129 µg/m³, rentang udara berkualitas SEDANG berpusat di nilai 148-191 µg/m³, sedangkan rentang udara yang TIDAK SEHAT berpusat di nilai 216-268 µg/m³. Ini menunjukkan bahwa semakin tinggi jumlah polutan yang terkandung dalam udara, semakin buruk kualitas udara tersebut.
+
+
+#### Time series line chart untuk rata-rata total konsentrasi partikulat per tahun
+```{r}
+#menghitung rata-rata konsentrasi partikulat per tahun
+average_particulate_per_year <- df %>%
+  filter(year >= 2010 & year <= 2021) %>%
+  group_by(year) %>%
+  summarise(average_particulate = mean(sum_partikulat, na.rm = TRUE)) %>%
+  ungroup()
+
+#membuat line chart interaktif
+ggplotly(ggplot(average_particulate_per_year, aes(x = year, y = average_particulate, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point(color = "red") +
+  labs(title = "Rata-rata Konsentrasi Partikulat Tiap Tahun (2010-2021)",
+       x = "Tahun",
+       y = "Rata-rata Konsentrasi Total Partikulat (µgram/m³)") +
+  theme_minimal()
+)
+```
+Visualisasi di atas menunjukkan rata-rata konsentrasi partikulat dari tahun 2010 hingga 2021. Dari tahun 2010-2012, terjadi peningkatan konsentrasi dengan puncak sekitar 200 µg/m³. Pada tahun-tahun berikutnya, terjadi penurunan yang cukup signifikan mulai dari tahun 2013-2018, dengan titik terendah konsentrasi sebesar sekitar 140 µg/m³ pada tahun 2017. Namun, setelahnya terjadi peningkatan pada tahun 2019, di mana konsentrasi partikulat kembali mendekati 200 µg/m³.
+
+
+#### Time series line chart untuk rata-rata konsentrasi polutan per tahun
+```{r}
+#membuat variabel rata-rata per tahun
+rerata_polutan_pertahun <- df %>%
+  filter(year >= 2010 & year <= 2021) %>%
+  group_by(year) %>%
+  summarise(
+    PM10 = mean(pm10, na.rm = TRUE),
+    SO2 = mean(so2, na.rm = TRUE),
+    CO = mean(co, na.rm = TRUE),
+    O3 = mean(o3, na.rm = TRUE),
+    NO2 = mean(no2, na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = c(PM10, SO2, CO, O3, NO2), names_to = "Polutan", values_to = "Rata_rata") #untuk teks saat dihover ke titik-titik di chart
+
+#membuat line chart interaktif
+ggplotly(ggplot(rerata_polutan_pertahun, aes(x = year, y = Rata_rata, color = Polutan, group = Polutan)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Rata-rata Konsentrasi Partikulat Tiap Tahun (2010-2021)",
+       x = "Tahun",
+       y = "Rata-rata Konsentrasi (µgram/m³)",
+       color = "Polutan") +
+  theme_minimal()
+)
+```
+Visualisasi di atas menampilkan rata-rata setiap partikulat per tahun mulai dari 2010 sampai dengan 2021 dimana puncak tertinggi O~3~ berada di tahun 2012 dan CO, O~3~ dan SO~2~ berada di titik yang hampir sama di tahun 2016. Adapun partikulat yang mengalami lonjakan dan penurunan yang paling drastis adalah O~3~ dan NO~2~ cenderung selalu rendah.
+
+
+#### Scatter plot untuk variabel no2 dan max
+```{r}
+pal <- c("springgreen4", "gold1", "grey", "red") #skema warna untuk kategori baik, sedang, tidak ada data, dan tidak sehat
+
+#membuat scatter plot dengan mode markers
+plot_ly(
+  data = df,
+  x = ~max,
+  y = ~no2,
+  type = "scatter", 
+  mode = "markers",
+  color = ~categori,
+  colors = pal
+)
+```
+Di sini terdapat 3 variabel, yaitu max, no2, dan categori dimana categori memberikan warna sekaligus mengelompokkan variabel-variabel tersebut. Kami memilih untuk menganalisis kedua variabel ini dengan no2 karena pada awalnya kami mencari tahu apakah ada pengaruh antara variabel max dan no2 namun kami menemukan sesuatu yang sangat menarik, yaitu berurutnya dan nampak jelas perbedaan setiap kandungan NO~2~ dalam jumlah max apabila diurutkan berdasarkan kategori. Hal ini menunjukkan akan pengaruh kandungan NO~2~ dan max dalam menentukan baik tidaknya suatu kualitas udara. Dari data ini, kita dapat variabel max yang kurang dari 50 (<=50 µg/m³) cenderung BAIK dengan kandungan NO~2~ maximum 49 µg/m³, sedang sendiri cenderung di antara 50 µg/m³ dan 100 µg/m³ dengan tingkatan NO~2~ diantara 0-50 µg/m³ dan tingkatan 20-80 µg/m³ juga terdapat dengan nilai max kurang dari 50 µg/m³ dan yang terakhir tidak sehat cenderung berada di atas 100 max dengan maximum kandungan NO~2~ 49 µg/m³.
+
+
+# 5. Discussion
+Analisis yang dilakukan pada data kualitas udara di Bundaran HI selama periode 2010-2021 menunjukkan beberapa pola dan tren yang signifikan. Pertama, dari visualisasi data, terlihat adanya fluktuasi dalam konsentrasi partikulat dan polutan lainnya dari tahun ke tahun. Beberapa polutan seperti PM10 dan NO2 menunjukkan peningkatan pada tahun tertentu yang mungkin berhubungan dengan peningkatan aktivitas industri atau transportasi di wilayah tersebut.
+
+Namun, dari correlation plot, kita dapat melihat bahwa korelasi antara variabel polutan cenderung rendah. Misalnya, PM10 dan NO2 menunjukkan korelasi yang tidak terlalu kuat, yang menunjukkan bahwa peningkatan salah satu polutan tidak selalu diikuti dengan peningkatan polutan lainnya. Hal ini mengindikasikan bahwa sumber polusi di Bundaran HI mungkin bersifat multifaktor, tetapi tidak selalu saling berkaitan secara langsung.
+
+Selain itu, hasil dari bar plot dan time series line chart untuk variabel critical menunjukkan bahwa SO2 seringkali menjadi polutan kritis dalam periode waktu tertentu. Hal ini bisa disebabkan oleh emisi dari kendaraan bermotor atau pembakaran bahan bakar fosil.
+
+Analisis ini juga menunjukkan pentingnya penghapusan data PM2.5 yang tidak lengkap dan bagaimana penghapusan ini dapat mempengaruhi hasil analisis secara keseluruhan. Imputasi missing value dan encoding variabel kategorikal membantu dalam menangani data yang tidak lengkap dan memastikan analisis berjalan dengan lancar.
+
+Secara keseluruhan, analisis ini menunjukkan bahwa kualitas udara di Bundaran HI dipengaruhi oleh berbagai faktor dan bahwa upaya pengurangan polusi harus mempertimbangkan berbagai sumber emisi yang berkontribusi terhadap peningkatan konsentrasi polutan di udara.
+
+
+# 6. Conclusion
+Kesimpulan dari laporan ini adalah bahwa kualitas udara di Bundaran HI Jakarta selama periode 2010-2021 mengalami fluktuasi yang signifikan dalam konsentrasi polutan utama seperti PM10, SO2, CO, O3, dan NO2. Polutan PM10 khususnya menonjol sebagai perhatian utama karena tingkatnya yang tinggi pada beberapa periode. Analisis menggunakan Exploratory Data Analysis (EDA) dan korelasi Pearson memberikan wawasan yang berharga tentang pola-pola dalam data polusi udara.
+
+Laporan ini diharapkan memberikan dasar yang kuat bagi pembaca dalam memahami kondisi kualitas udara di Bundaran HI dan membantu dalam pengambilan keputusan yang lebih baik terkait upaya peningkatan kualitas udara di Jakarta.
+
+
+# 7. References
+- [Dataset Air Quality](https://www.kaggle.com/datasets/senadu34/air-quality-index)  
+- [Peningkatan PM2.5 di Jakarta](https://www.kompas.com/sains/read/2020/08/12/100200623/terkenal-buruk-begini-kualitas-udara-jakarta-selama-pandemi-covid-19?page=all)  
+- [Explanatory Data Analysis (EDA)](https://en.wikipedia.org/wiki/Exploratory_data_analysis)  
+- [Pearson's Correlation](https://ss.mipa.ub.ac.id/korelasi-pearson/)  
