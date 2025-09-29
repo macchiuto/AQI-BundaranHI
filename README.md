@@ -16,7 +16,9 @@ The goal is to analyze air pollutant trends, identify critical factors, and visu
 
 ## Repository Structure  
 data/ # Raw and processed datasets
+
 scripts/ # R Markdown script for preprocessing, EDA, and visualization
+
 results/ # Final outputs: knitted reports, infographic poster, and explanation video
 
 ---
