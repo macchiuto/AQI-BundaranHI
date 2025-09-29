@@ -32,7 +32,6 @@ results/ # Final outputs: knitted reports, infographic poster, and explanation v
   - `AQI_BundaranHI.Rmd` → main analysis script with preprocessing, EDA, and discussions
 
 - **results/**
-  - `air_quality_report.pdf` → finalized full analysis report with structured discussions
   - `air_quality_report.html` → knitted output of the R Markdown script
   - `Air Quality Chronicles Bundaran HI 2010-2021.png` → infographic e-poster (case study summary)
   - `air_quality_explanation.mp4` → project presentation video
