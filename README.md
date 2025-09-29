@@ -1,5 +1,9 @@
 # Air Quality Case Study: Bundaran HI (2010–2021)
 
+![R](https://img.shields.io/badge/language-R-blue)
+![HTML](https://img.shields.io/badge/output-HTML-orange)
+![PDF](https://img.shields.io/badge/output-PDF-lightgrey)
+
 ## Overview
 This repository contains an exploratory data analysis (EDA) on **Jakarta’s air quality** at Bundaran HI station from 2010–2021.
 The project is developed as part of an academic case study, aligned with:
